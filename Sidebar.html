@@ -56,7 +56,7 @@
   <input type="text" id="storeUsername" placeholder="e.g. legojames" autocomplete="off">
 
   <button id="saveBtn" onclick="save()">Save Credentials</button>
-  <button class="danger" id="clearBtn" onclick="clear()">Clear Saved Credentials</button>
+  <button class="danger" id="clearBtn" onclick="clearCreds()">Clear Saved Credentials</button>
   <div id="status"></div>
 
   <script>
@@ -103,7 +103,7 @@
         .saveCredentialsFromSidebar(creds);
     }
 
-    function clear() {
+    function clearCreds() {
       var status = document.getElementById('status');
       var btn    = document.getElementById('clearBtn');
       btn.disabled = true;
