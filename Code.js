@@ -203,12 +203,11 @@ function bricklinkRequest(endpoint, method, queryParams, bodyParams) {
 function testConnection() {
   try {
     const creds = getCredentials();
-    const data = bricklinkRequest(`member/${creds.storeUsername}`, 'GET');
+    const data = bricklinkRequest('orders', 'GET', { direction: 'in' });
 
     if (data.meta && data.meta.code === 200) {
-      const storeName = data.data && data.data.store_name ? data.data.store_name : creds.storeUsername;
-      SpreadsheetApp.getUi().alert(`✅ Connected!\n\nStore name: ${storeName}`);
-      logStatus(`Last connection test: ${new Date().toLocaleString()} — OK (${storeName})`);
+      SpreadsheetApp.getUi().alert(`✅ Connected!\n\nStore: ${creds.storeUsername}`);
+      logStatus(`Last connection test: ${new Date().toLocaleString()} — OK (${creds.storeUsername})`);
     } else {
       SpreadsheetApp.getUi().alert(`⚠️ API responded but returned:\n\n${JSON.stringify(data.meta)}`);
     }
