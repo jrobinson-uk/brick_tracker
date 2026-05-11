@@ -17,7 +17,6 @@ function onOpen() {
     .addItem('Settings',        'openSettings')
     .addToUi();
 
-  if (!credentialsExist()) showSetupSidebar();
 }
 
 // -------------------------------------------------------
@@ -72,6 +71,13 @@ function saveCredentialsFromSidebar(creds) {
 
 function credentialsExist() {
   return !!PropertiesService.getUserProperties().getProperty('BL_CONSUMER_KEY');
+}
+
+function clearCredentials() {
+  const props = PropertiesService.getUserProperties();
+  ['BL_CONSUMER_KEY', 'BL_CONSUMER_SECRET', 'BL_ACCESS_TOKEN', 'BL_ACCESS_TOKEN_SECRET', 'BL_STORE_USERNAME']
+    .forEach(k => props.deleteProperty(k));
+  logStatus(`Credentials cleared: ${new Date().toLocaleString()}`);
 }
 
 // -------------------------------------------------------

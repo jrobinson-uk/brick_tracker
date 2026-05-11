@@ -19,6 +19,8 @@
     }
     button:hover { background: #1557b0; }
     button:disabled { background: #aaa; cursor: default; }
+    button.danger { background: white; color: #c5221f; border: 1px solid #c5221f; margin-top: 8px; }
+    button.danger:hover { background: #fce8e6; }
     #status { margin-top: 12px; font-size: 12px; min-height: 18px; }
     .ok  { color: #188038; }
     .err { color: #c5221f; }
@@ -54,14 +56,19 @@
   <input type="text" id="storeUsername" placeholder="e.g. legojames" autocomplete="off">
 
   <button id="saveBtn" onclick="save()">Save Credentials</button>
+  <button class="danger" id="clearBtn" onclick="clear()">Clear Saved Credentials</button>
   <div id="status"></div>
 
   <script>
-    google.script.run
-      .withSuccessHandler(function(exists) {
-        if (exists) document.getElementById('saved-notice').style.display = 'block';
-      })
-      .credentialsExist();
+    function refreshSavedNotice() {
+      google.script.run
+        .withSuccessHandler(function(exists) {
+          document.getElementById('saved-notice').style.display = exists ? 'block' : 'none';
+        })
+        .credentialsExist();
+    }
+
+    refreshSavedNotice();
 
     function save() {
       var creds = {
@@ -94,6 +101,28 @@
           btn.disabled       = false;
         })
         .saveCredentialsFromSidebar(creds);
+    }
+
+    function clear() {
+      var status = document.getElementById('status');
+      var btn    = document.getElementById('clearBtn');
+      btn.disabled = true;
+      status.textContent = 'Clearing…';
+      status.className   = '';
+
+      google.script.run
+        .withSuccessHandler(function() {
+          status.textContent = '✅ Credentials cleared.';
+          status.className   = 'ok';
+          btn.disabled       = false;
+          refreshSavedNotice();
+        })
+        .withFailureHandler(function(err) {
+          status.textContent = '❌ ' + err.message;
+          status.className   = 'err';
+          btn.disabled       = false;
+        })
+        .clearCredentials();
     }
   </script>
 </body>
