@@ -16,6 +16,8 @@ function onOpen() {
     .addSeparator()
     .addItem('Settings',        'openSettings')
     .addToUi();
+
+  if (!credentialsExist()) showSetupSidebar();
 }
 
 // -------------------------------------------------------
