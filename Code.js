@@ -1,6 +1,80 @@
 // ============================================================
-// JR's Bricks Profit Tracker — Phase 1: Foundation & API
+// JR's Bricks Profit Tracker — Phase 2: Custom Menu & UX Shell
 // ============================================================
+
+// -------------------------------------------------------
+// MENU
+// -------------------------------------------------------
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('BrickLink Tracker')
+    .addItem('Sync Orders',     'syncOrders')
+    .addItem('Sync Inventory',  'syncInventory')
+    .addItem('Log Purchase',    'logPurchase')
+    .addItem('View Dashboard',  'viewDashboard')
+    .addSeparator()
+    .addItem('Settings',        'openSettings')
+    .addToUi();
+}
+
+// -------------------------------------------------------
+// MENU STUBS — filled in by later phases
+// -------------------------------------------------------
+
+function syncOrders() {
+  SpreadsheetApp.getUi().alert('Sync Orders — coming in Phase 3.');
+}
+
+function syncInventory() {
+  SpreadsheetApp.getUi().alert('Sync Inventory — coming in Phase 6.');
+}
+
+function logPurchase() {
+  SpreadsheetApp.getUi().alert('Log Purchase — coming in Phase 5.');
+}
+
+function viewDashboard() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const dash = ss.getSheetByName('Dashboard');
+  if (dash) {
+    ss.setActiveSheet(dash);
+  } else {
+    SpreadsheetApp.getUi().alert('Dashboard tab not set up yet — coming in Phase 8.');
+  }
+}
+
+function openSettings() {
+  showSetupSidebar();
+}
+
+// -------------------------------------------------------
+// SETUP SIDEBAR
+// -------------------------------------------------------
+
+function showSetupSidebar() {
+  const html = HtmlService.createHtmlOutputFromFile('Sidebar')
+    .setTitle('BrickLink Tracker Setup');
+  SpreadsheetApp.getUi().showSidebar(html);
+}
+
+function saveCredentialsFromSidebar(creds) {
+  const props = PropertiesService.getUserProperties();
+  if (creds.consumerKey)       props.setProperty('BL_CONSUMER_KEY',          creds.consumerKey);
+  if (creds.consumerSecret)    props.setProperty('BL_CONSUMER_SECRET',       creds.consumerSecret);
+  if (creds.accessToken)       props.setProperty('BL_ACCESS_TOKEN',          creds.accessToken);
+  if (creds.accessTokenSecret) props.setProperty('BL_ACCESS_TOKEN_SECRET',   creds.accessTokenSecret);
+  if (creds.storeUsername)     props.setProperty('BL_STORE_USERNAME',        creds.storeUsername);
+  logStatus(`Credentials saved: ${new Date().toLocaleString()}`);
+}
+
+function credentialsExist() {
+  return !!PropertiesService.getUserProperties().getProperty('BL_CONSUMER_KEY');
+}
+
+// -------------------------------------------------------
+// CONSTANTS
+// -------------------------------------------------------
 
 const SETTINGS_TAB = 'Settings';
 const CREDS_ROW_START = 2;
