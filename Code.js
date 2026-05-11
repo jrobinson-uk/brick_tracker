@@ -202,12 +202,13 @@ function bricklinkRequest(endpoint, method, queryParams, bodyParams) {
 
 function testConnection() {
   try {
-    const data = bricklinkRequest('orders', 'GET', { direction: 'in' });
+    const creds = getCredentials();
+    const data = bricklinkRequest(`member/${creds.storeUsername}`, 'GET');
 
     if (data.meta && data.meta.code === 200) {
-      const orderCount = data.data ? data.data.length : 0;
-      SpreadsheetApp.getUi().alert(`✅ Connected!\n\nFound ${orderCount} orders received.`);
-      logStatus(`Last connection test: ${new Date().toLocaleString()} — OK`);
+      const storeName = data.data && data.data.store_name ? data.data.store_name : creds.storeUsername;
+      SpreadsheetApp.getUi().alert(`✅ Connected!\n\nStore name: ${storeName}`);
+      logStatus(`Last connection test: ${new Date().toLocaleString()} — OK (${storeName})`);
     } else {
       SpreadsheetApp.getUi().alert(`⚠️ API responded but returned:\n\n${JSON.stringify(data.meta)}`);
     }
