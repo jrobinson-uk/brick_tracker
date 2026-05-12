@@ -22,6 +22,25 @@ function onOpen() {
 }
 
 // -------------------------------------------------------
+// DEBUG — remove after investigation
+// -------------------------------------------------------
+
+function debugOrderFields() {
+  const data = bricklinkRequest('orders', 'GET', { direction: 'in' });
+  if (!data.data || data.data.length === 0) {
+    Logger.log('No orders returned');
+    return;
+  }
+  const first = data.data[0];
+  Logger.log('order_id: ' + first.order_id);
+  Logger.log('cost object: ' + JSON.stringify(first.cost));
+  Logger.log('shipping object: ' + JSON.stringify(first.shipping));
+  SpreadsheetApp.getUi().alert(
+    'cost: ' + JSON.stringify(first.cost) + '\n\nshipping: ' + JSON.stringify(first.shipping)
+  );
+}
+
+// -------------------------------------------------------
 // ORDER SYNC
 // -------------------------------------------------------
 
