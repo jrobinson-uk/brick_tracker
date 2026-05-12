@@ -49,13 +49,12 @@ function setupOrdersTab() {
     }
   });
 
-  // Sheet protection — lock everything, leave manual columns editable
+  // Sheet protection — warn on synced columns, leave manual columns editable
   sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
   const protection = sheet.protect().setDescription('Synced BrickLink data — do not edit');
   const manualRanges = MANUAL_COLS.map(c => sheet.getRange(2, c, sheet.getMaxRows() - 1, 1));
   protection.setUnprotectedRanges(manualRanges);
-  protection.removeEditors(protection.getEditors());
-  if (protection.canDomainEdit()) protection.setDomainEdit(false);
+  protection.setWarningOnly(true);
 }
 
 function syncOrders() {
