@@ -26,17 +26,34 @@ function onOpen() {
 const LAST_ORDER_SYNC_KEY = 'LAST_ORDER_SYNC';
 
 function setupOrdersTab() {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet   = ss.getSheetByName(ORDERS_TAB);
+  const ss  = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(ORDERS_TAB);
   if (!sheet) sheet = ss.insertSheet(ORDERS_TAB);
 
   sheet.clearContents();
-  const header = sheet.getRange(1, 1, 1, ORDERS_HEADERS.length);
-  header.setValues([ORDERS_HEADERS]);
-  header.setFontWeight('bold');
-  header.setBackground('#f3f3f3');
+
+  // Headers
+  const headerRange = sheet.getRange(1, 1, 1, ORDERS_HEADERS.length);
+  headerRange.setValues([ORDERS_HEADERS]);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground(HEADER_COLOUR);
   sheet.setFrozenRows(1);
-  sheet.autoResizeColumns(1, ORDERS_HEADERS.length);
+
+  // Column widths and manual column highlighting
+  COL_WIDTHS.forEach((w, i) => {
+    sheet.setColumnWidth(i + 1, w);
+    if (MANUAL_COLS.includes(i + 1)) {
+      sheet.getRange(1, i + 1).setBackground('#FFE082'); // darker yellow for manual headers
+    }
+  });
+
+  // Sheet protection — lock everything, leave manual columns editable
+  sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
+  const protection = sheet.protect().setDescription('Synced BrickLink data — do not edit');
+  const manualRanges = MANUAL_COLS.map(c => sheet.getRange(2, c, sheet.getMaxRows() - 1, 1));
+  protection.setUnprotectedRanges(manualRanges);
+  protection.removeEditors(protection.getEditors());
+  if (protection.canDomainEdit()) protection.setDomainEdit(false);
 }
 
 function syncOrders() {
@@ -50,14 +67,11 @@ function syncOrders() {
     sheet = ss.getSheetByName(ORDERS_TAB);
   }
 
-  const lastSync = props.getProperty(LAST_ORDER_SYNC_KEY);
   logStatus('Syncing orders…');
+  resetApiCallLog();
 
   try {
-    const params = { direction: 'in' };
-    if (lastSync) params.filed = 'false'; // only open/recent orders on incremental sync
-
-    const data = bricklinkRequest('orders', 'GET', params);
+    const data = bricklinkRequest('orders', 'GET', { direction: 'in' });
 
     if (!data.meta || data.meta.code !== 200) {
       ui.alert(`⚠️ API error:\n\n${JSON.stringify(data.meta)}`);
@@ -67,48 +81,54 @@ function syncOrders() {
 
     const orders = data.data || [];
 
-    // On incremental sync, filter to orders newer than last sync
-    const filtered = lastSync
-      ? orders.filter(o => new Date(o.date_ordered) > new Date(lastSync))
-      : orders;
+    // Build set of order IDs already in the sheet
+    const lastRow = sheet.getLastRow();
+    const existingIds = new Set();
+    if (lastRow > 1) {
+      sheet.getRange(2, 1, lastRow - 1, 1).getValues()
+        .forEach(r => { if (r[0]) existingIds.add(String(r[0])); });
+    }
 
-    if (filtered.length === 0) {
-      ui.alert('✅ Orders up to date — no new orders since last sync.');
+    const newOrders = orders.filter(o => !existingIds.has(String(o.order_id)));
+
+    if (newOrders.length === 0) {
+      ui.alert('✅ Orders up to date — nothing new to import.');
       logStatus(`Orders synced: ${new Date().toLocaleString()} — no new orders`);
-      props.setProperty(LAST_ORDER_SYNC_KEY, new Date().toISOString());
+      flushApiCallLog('syncOrders');
       return;
     }
 
-    // Build rows — newest first
-    filtered.sort((a, b) => new Date(b.date_ordered) - new Date(a.date_ordered));
+    newOrders.sort((a, b) => new Date(b.date_ordered) - new Date(a.date_ordered));
 
-    const rows = filtered.map(o => [
+    const rows = newOrders.map(o => [
       o.order_id,
       o.date_ordered ? new Date(o.date_ordered).toLocaleDateString('en-GB') : '',
       o.buyer_name   || '',
       o.total_count  || 0,
       o.unique_count || 0,
-      o.cost         ? parseFloat(o.cost.subtotal)    : '',
-      o.cost         ? parseFloat(o.cost.shipping)    : '',
-      o.cost         ? parseFloat(o.cost.grand_total) : '',
-      o.cost         ? o.cost.currency_code           : '',
-      o.payment      ? o.payment.method               : '',
-      o.status       || ''
+      o.cost && o.cost.shipping    != null ? parseFloat(o.cost.shipping)    : '',
+      '',  // Shipping Actual — manual entry
+      o.cost && o.cost.grand_total != null ? parseFloat(o.cost.grand_total) : '',
+      o.cost  ? o.cost.currency_code : '',
+      o.payment ? o.payment.method   : '',
+      o.status  || '',
+      '',  // Refund — manual entry
+      ''   // Notes — manual entry
     ]);
 
-    // Append after existing data
-    const lastRow = Math.max(sheet.getLastRow(), 1);
-    sheet.getRange(lastRow + 1, 1, rows.length, ORDERS_HEADERS.length).setValues(rows);
-    sheet.autoResizeColumns(1, ORDERS_HEADERS.length);
+    const insertRow = Math.max(sheet.getLastRow(), 1) + 1;
+    sheet.getRange(insertRow, 1, rows.length, ORDERS_HEADERS.length).setValues(rows);
+
+    // Colour manual columns in new data rows
+    MANUAL_COLS.forEach(c => {
+      sheet.getRange(insertRow, c, rows.length, 1).setBackground(MANUAL_COLOUR);
+    });
 
     props.setProperty(LAST_ORDER_SYNC_KEY, new Date().toISOString());
+    flushApiCallLog('syncOrders');
 
-    const msg = lastSync
-      ? `✅ Synced ${filtered.length} new order(s).`
-      : `✅ Full sync complete — ${filtered.length} order(s) imported.`;
-
-    ui.alert(msg);
-    logStatus(`Orders synced: ${new Date().toLocaleString()} — ${filtered.length} new`);
+    ui.alert(`✅ Synced ${newOrders.length} new order(s).`);
+    logStatus(`Orders synced: ${new Date().toLocaleString()} — ${newOrders.length} new`);
 
   } catch (e) {
     ui.alert(`❌ Sync failed:\n\n${e.message}`);
@@ -186,9 +206,14 @@ const OAUTH_VERSION = '1.0';
 
 const ORDERS_HEADERS = [
   'Order ID', 'Date', 'Buyer', 'Items', 'Lots',
-  'Subtotal', 'Shipping', 'Grand Total', 'Currency',
-  'Payment Method', 'Status'
+  'Shipping Charged', 'Shipping Actual', 'Grand Total', 'Currency',
+  'Payment Method', 'Status', 'Refund', 'Notes'
 ];
+
+const MANUAL_COLS   = [7, 12, 13]; // Shipping Actual, Refund, Notes (1-indexed)
+const MANUAL_COLOUR = '#FFF9C4';   // light yellow
+const HEADER_COLOUR = '#f3f3f3';
+const COL_WIDTHS    = [100, 110, 150, 60, 60, 130, 120, 110, 80, 200, 110, 90, 200];
 
 // -------------------------------------------------------
 // SETUP — run once to label the Settings tab
@@ -293,6 +318,39 @@ function buildAuthorizationHeader(oauthParams) {
 }
 
 // -------------------------------------------------------
+// API CALL TRACKING
+// -------------------------------------------------------
+
+let apiCallLog_ = {};
+
+function resetApiCallLog() {
+  apiCallLog_ = {};
+}
+
+function trackApiCall_(endpoint) {
+  const key = endpoint.split('?')[0];
+  apiCallLog_[key] = (apiCallLog_[key] || 0) + 1;
+}
+
+function flushApiCallLog(functionName) {
+  const total   = Object.values(apiCallLog_).reduce((a, b) => a + b, 0);
+  const detail  = Object.entries(apiCallLog_).map(([k, v]) => `${k}: ${v}`).join(', ');
+  const message = `[${functionName}] ${total} API call(s) — ${detail}`;
+
+  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SETTINGS_TAB);
+  const logRow = 13;
+  const existing = sheet.getRange(logRow, 2).getValue();
+  const updated  = `${new Date().toLocaleString()} — ${message}` +
+                   (existing ? `\n${existing}` : '');
+  sheet.getRange(logRow, 1).setValue('API Log:');
+  sheet.getRange(logRow, 2).setValue(updated.split('\n').slice(0, 10).join('\n'));
+
+  Logger.log(message);
+  apiCallLog_ = {};
+}
+
+// -------------------------------------------------------
 // CORE API REQUEST — used by every future phase
 // -------------------------------------------------------
 
@@ -367,6 +425,7 @@ function bricklinkRequest(endpoint, method, queryParams, bodyParams) {
     requestUrl = baseUrl + '?' + queryString;
   }
 
+  trackApiCall_(endpoint);
   const response = UrlFetchApp.fetch(requestUrl, options);
   const code = response.getResponseCode();
   const body = response.getContentText();
