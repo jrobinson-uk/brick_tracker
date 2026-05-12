@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; padding: 16px; color: #202124; }
+    h2 { font-size: 15px; margin: 0 0 4px; }
+    p.sub { color: #5f6368; font-size: 12px; margin: 0 0 20px; }
+    label { display: block; margin-top: 12px; font-weight: bold; font-size: 12px; }
+    input {
+      width: 100%; box-sizing: border-box; padding: 6px 8px; margin-top: 4px;
+      border: 1px solid #dadce0; border-radius: 4px; font-size: 13px;
+    }
+    input:focus { outline: none; border-color: #1a73e8; }
+    button {
+      margin-top: 20px; width: 100%; padding: 9px;
+      background: #1a73e8; color: white; border: none;
+      border-radius: 4px; font-size: 13px; cursor: pointer;
+    }
+    button:hover { background: #1557b0; }
+    button:disabled { background: #aaa; cursor: default; }
+    button.danger { background: white; color: #c5221f; border: 1px solid #c5221f; margin-top: 8px; }
+    button.danger:hover { background: #fce8e6; }
+    #status { margin-top: 12px; font-size: 12px; min-height: 18px; }
+    .ok  { color: #188038; }
+    .err { color: #c5221f; }
+    .already-saved { background: #e8f5e9; border: 1px solid #a8d5b5; border-radius: 4px; padding: 8px 10px; font-size: 12px; color: #188038; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <h2>BrickLink Tracker Setup</h2>
+  <p class="sub">
+    Credentials are stored securely and never written to the sheet.<br><br>
+    New to the API?
+    <a href="https://www.bricklink.com/v2/api/welcome.page" target="_blank">Get started here</a>,
+    then <a href="https://www.bricklink.com/v2/api/register_consumer.page" target="_blank">register your keys</a>.
+  </p>
+
+  <div id="saved-notice" class="already-saved" style="display:none">
+    ✅ Credentials already saved. Fill fields below to update them.
+  </div>
+
+  <label>Consumer Key</label>
+  <input type="password" id="consumerKey" placeholder="Enter Consumer Key" autocomplete="off">
+
+  <label>Consumer Secret</label>
+  <input type="password" id="consumerSecret" placeholder="Enter Consumer Secret" autocomplete="off">
+
+  <label>Token Value</label>
+  <input type="password" id="accessToken" placeholder="Enter Token Value" autocomplete="off">
+
+  <label>Token Secret</label>
+  <input type="password" id="accessTokenSecret" placeholder="Enter Token Secret" autocomplete="off">
+
+  <label>Store Username</label>
+  <input type="text" id="storeUsername" autocomplete="off">
+
+  <button id="saveBtn" onclick="save()">Save Credentials</button>
+  <button class="danger" id="clearBtn" onclick="clearCreds()">Clear Saved Credentials</button>
+  <div id="status"></div>
+
+  <script>
+    function refreshSavedNotice() {
+      google.script.run
+        .withSuccessHandler(function(exists) {
+          document.getElementById('saved-notice').style.display = exists ? 'block' : 'none';
+        })
+        .credentialsExist();
+    }
+
+    refreshSavedNotice();
+
+    function save() {
+      var creds = {
+        consumerKey:       document.getElementById('consumerKey').value.trim(),
+        consumerSecret:    document.getElementById('consumerSecret').value.trim(),
+        accessToken:       document.getElementById('accessToken').value.trim(),
+        accessTokenSecret: document.getElementById('accessTokenSecret').value.trim(),
+        storeUsername:     document.getElementById('storeUsername').value.trim()
+      };
+
+      var status = document.getElementById('status');
+      var btn    = document.getElementById('saveBtn');
+
+      status.textContent = 'Saving…';
+      status.className   = '';
+      btn.disabled       = true;
+
+      google.script.run
+        .withSuccessHandler(function() {
+          status.textContent = '✅ Credentials saved securely.';
+          status.className   = 'ok';
+          btn.disabled       = false;
+          document.getElementById('saved-notice').style.display = 'block';
+          ['consumerKey','consumerSecret','accessToken','accessTokenSecret','storeUsername']
+            .forEach(function(id) { document.getElementById(id).value = ''; });
+        })
+        .withFailureHandler(function(err) {
+          status.textContent = '❌ ' + err.message;
+          status.className   = 'err';
+          btn.disabled       = false;
+        })
+        .saveCredentialsFromSidebar(creds);
+    }
+
+    function clearCreds() {
+      var status = document.getElementById('status');
+      var btn    = document.getElementById('clearBtn');
+      btn.disabled = true;
+      status.textContent = 'Clearing…';
+      status.className   = '';
+
+      google.script.run
+        .withSuccessHandler(function() {
+          status.textContent = '✅ Credentials cleared.';
+          status.className   = 'ok';
+          btn.disabled       = false;
+          refreshSavedNotice();
+        })
+        .withFailureHandler(function(err) {
+          status.textContent = '❌ ' + err.message;
+          status.className   = 'err';
+          btn.disabled       = false;
+        })
+        .clearCredentials();
+    }
+  </script>
+</body>
+</html>
