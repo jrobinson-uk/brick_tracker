@@ -1,0 +1,30 @@
+name: Clasp Push
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to sync to Apps Script'
+        required: true
+        default: 'master'
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Install clasp
+        run: npm install -g @google/clasp
+
+      - name: Write clasp credentials
+        run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+
+      - name: Write clasp project config
+        run: echo '${{ secrets.CLASP_JSON }}' > .clasp.json
+
+      - name: Push to Apps Script
+        run: clasp push --force
