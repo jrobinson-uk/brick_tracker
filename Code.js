@@ -2,6 +2,8 @@
 // JR's Bricks Profit Tracker — Phase 3: Order Sync
 // ============================================================
 
+const VERSION = '3.2.0';
+
 // -------------------------------------------------------
 // MENU
 // -------------------------------------------------------
@@ -47,13 +49,12 @@ function setupOrdersTab() {
     }
   });
 
-  // Sheet protection — lock everything, leave manual columns editable
+  // Sheet protection — warn on synced columns, leave manual columns editable
   sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
   const protection = sheet.protect().setDescription('Synced BrickLink data — do not edit');
   const manualRanges = MANUAL_COLS.map(c => sheet.getRange(2, c, sheet.getMaxRows() - 1, 1));
   protection.setUnprotectedRanges(manualRanges);
-  protection.removeEditors(protection.getEditors());
-  if (protection.canDomainEdit()) protection.setDomainEdit(false);
+  protection.setWarningOnly(true);
 }
 
 function syncOrders() {
@@ -100,21 +101,30 @@ function syncOrders() {
 
     newOrders.sort((a, b) => new Date(b.date_ordered) - new Date(a.date_ordered));
 
-    const rows = newOrders.map(o => [
-      o.order_id,
-      o.date_ordered ? new Date(o.date_ordered).toLocaleDateString('en-GB') : '',
-      o.buyer_name   || '',
-      o.total_count  || 0,
-      o.unique_count || 0,
-      o.cost && o.cost.shipping    != null ? parseFloat(o.cost.shipping)    : '',
-      '',  // Shipping Actual — manual entry
-      o.cost && o.cost.grand_total != null ? parseFloat(o.cost.grand_total) : '',
-      o.cost  ? o.cost.currency_code : '',
-      o.payment ? o.payment.method   : '',
-      o.status  || '',
-      '',  // Refund — manual entry
-      ''   // Notes — manual entry
-    ]);
+    logStatus(`Fetching details for ${newOrders.length} new order(s)…`);
+
+    const rows = newOrders.map((o, i) => {
+      logStatus(`Fetching order ${i + 1} of ${newOrders.length}…`);
+      const detail     = bricklinkRequest(`orders/${o.order_id}`, 'GET');
+      const cost       = detail.data ? detail.data.cost : null;
+      const shipping   = cost && cost.shipping != null ? parseFloat(cost.shipping) : '';
+
+      return [
+        o.order_id,
+        o.date_ordered ? new Date(o.date_ordered).toLocaleDateString('en-GB') : '',
+        o.buyer_name   || '',
+        o.total_count  || 0,
+        o.unique_count || 0,
+        shipping,
+        '',  // Shipping Actual — manual entry
+        o.cost && o.cost.grand_total != null ? parseFloat(o.cost.grand_total) : '',
+        o.cost  ? o.cost.currency_code : '',
+        o.payment ? o.payment.method   : '',
+        o.status  || '',
+        '',  // Refund — manual entry
+        ''   // Notes — manual entry
+      ];
+    });
 
     const insertRow = Math.max(sheet.getLastRow(), 1) + 1;
     sheet.getRange(insertRow, 1, rows.length, ORDERS_HEADERS.length).setValues(rows);
