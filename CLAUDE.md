@@ -100,10 +100,23 @@ All BrickLink calls go through `bricklinkRequest(endpoint, method, queryParams, 
 ### Status bar
 `logStatus(message)` writes to `Settings!A10:B10`. Call it after every significant operation.
 
+### Debug tab
+A `Debug` sheet tab holds a timestamped log of all significant events. It is auto-created on first use.
+
+| Column | Content |
+|--------|---------|
+| Timestamp | `en-GB` locale string |
+| Function | Name of the calling function |
+| Message | Free-text detail |
+
+- `debugLog(functionName, message)` — appends a row; any function can call this.
+- `clearDebugLog()` — wipes all rows below the header; also available from the menu.
+- `setupDebugTab()` — recreates the tab with correct headers/widths (called automatically, or manually to reset).
+
 ### API call tracking
 - `resetApiCallLog()` — call before a sync function starts.
 - `trackApiCall_(endpoint)` — called internally by `bricklinkRequest`.
-- `flushApiCallLog(functionName)` — writes a summary to `Settings!B13` and to `Logger`; call at the end of a sync function.
+- `flushApiCallLog(functionName)` — writes a summary to `Settings!B13`, appends a full entry to the Debug tab, and logs to `Logger`; call at the end of a sync function.
 
 ### Sheet protection
 `setupOrdersTab()` protects the Orders sheet, leaving only `MANUAL_COLS` columns editable. Recreate protection by calling `setupOrdersTab()` again if columns are added.
@@ -174,10 +187,9 @@ GET  /notifications             # Unread push notifications
 ## Phase 3.5 Objectives (Current Priority)
 
 1. **Split `Code.js` into modules** — ✓ Complete. Six files created: `Auth.js`, `Config.js`, `Debug.js`, `Orders.js`, `UI.js`, `Utils.js`.
-2. **Investigate `cost.shipping`** — why it isn't returned by the API; consider fetching individual order detail (`GET /orders/{order_id}`) which may include shipping breakdown.
-3. **Add Debug tab** — timestamped log entries, API call traces, error capture, manual flush/clear button.
-4. **Add `Debug.gs`** — debug-specific functions and log writer.
-5. **Done when:** Code is modular, Debug tab works, postage issue resolved or diagnosed, all existing functionality intact.
+2. **Add Debug tab** — ✓ Complete. Timestamped log, `debugLog()` helper, `flushApiCallLog()` writes to tab, "Clear Debug Log" menu item.
+3. **Investigate `cost.shipping`** — why it isn't returned by the API; consider fetching individual order detail (`GET /orders/{order_id}`) which may include shipping breakdown.
+4. **Done when:** Debug tab works in practice, postage issue resolved or diagnosed, all existing functionality intact.
 
 ---
 

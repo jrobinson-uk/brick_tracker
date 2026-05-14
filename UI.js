@@ -11,6 +11,8 @@ function onOpen() {
     .addItem('View Dashboard', 'viewDashboard')
     .addSeparator()
     .addItem('Settings',       'openSettings')
+    .addSeparator()
+    .addItem('Clear Debug Log', 'clearDebugLog')
     .addToUi();
 }
 
