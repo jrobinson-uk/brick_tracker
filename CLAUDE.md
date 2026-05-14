@@ -15,7 +15,12 @@
 
 ```
 brick_tracker/
-├── Code.js                    # All Apps Script logic (monolithic for now — Phase 3.5 will split)
+├── Auth.js                    # OAuth 1.0a signing (urlEncode, signature building)
+├── Config.js                  # Constants and credential read/write via PropertiesService
+├── Debug.js                   # API call tracking (resetApiCallLog, trackApiCall_, flushApiCallLog)
+├── Orders.js                  # Order sync (setupOrdersTab, syncOrders)
+├── UI.js                      # Menu, sidebars, status bar, menu stubs for future phases
+├── Utils.js                   # Core API request (bricklinkRequest, testConnection)
 ├── Sidebar.html               # Setup sidebar HTML/CSS/JS for credential entry
 ├── appsscript.json            # Apps Script project manifest (timezone, runtime V8)
 ├── .github/workflows/
@@ -24,14 +29,7 @@ brick_tracker/
 └── jrs-bricks-tracker.code-workspace  # VS Code workspace file
 ```
 
-### Planned module structure (Phase 3.5 target)
-After the upcoming refactor, `Code.js` should be split into:
-- `Auth.gs` — OAuth 1.0a signing only
-- `Orders.gs` — order sync logic
-- `UI.gs` — menu, sidebars, status bar
-- `Config.gs` — settings read/write via PropertiesService
-- `Utils.gs` — shared helpers (date formatting, sheet utilities)
-- `Debug.gs` — debug functions, log writer, flush/clear
+**Note:** Apps Script treats all `.js` files in the project as a single global scope — there are no imports or exports. Splitting into files is for readability and maintainability only, not encapsulation.
 
 ---
 
@@ -161,7 +159,7 @@ GET  /notifications             # Unread push notifications
 | 1 | Foundation & API connection | ✓ Complete |
 | 2 | Custom menu & UX shell | ✓ Complete |
 | 3 | Order sync | ⚠ Partial — `cost.shipping` not returning |
-| 3.5 | Refactor & debug infrastructure | **Up next** |
+| 3.5 | Refactor & debug infrastructure | ⚠ Partial — module split done; Debug tab and `cost.shipping` investigation remaining |
 | 4 | Fee & net revenue calculation | Not started |
 | 5 | Purchase cost logger | Not started |
 | 6 | Inventory sync | Not started |
@@ -175,8 +173,8 @@ GET  /notifications             # Unread push notifications
 
 ## Phase 3.5 Objectives (Current Priority)
 
-1. **Investigate `cost.shipping`** — why it isn't returned by the API; consider fetching individual order detail (`GET /orders/{order_id}`) which may include shipping breakdown.
-2. **Split `Code.js` into modules** — confirm module boundaries against the live file before splitting; the planned module list is above.
+1. **Split `Code.js` into modules** — ✓ Complete. Six files created: `Auth.js`, `Config.js`, `Debug.js`, `Orders.js`, `UI.js`, `Utils.js`.
+2. **Investigate `cost.shipping`** — why it isn't returned by the API; consider fetching individual order detail (`GET /orders/{order_id}`) which may include shipping breakdown.
 3. **Add Debug tab** — timestamped log entries, API call traces, error capture, manual flush/clear button.
 4. **Add `Debug.gs`** — debug-specific functions and log writer.
 5. **Done when:** Code is modular, Debug tab works, postage issue resolved or diagnosed, all existing functionality intact.
