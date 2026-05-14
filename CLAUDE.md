@@ -202,3 +202,22 @@ GET  /notifications             # Unread push notifications
 - At the end of each phase chat: mark items completed / partial / deferred.
 - Roadmap document (`JRs_Bricks_ClaudeCode_Context_v*.docx`) is updated at the end of each phase and re-attached to the next session.
 - This `CLAUDE.md` should be updated whenever the phase status or code structure changes materially.
+
+---
+
+## Collaboration Style
+
+This is a **collaborative** project. Claude may write most or all of the code, but the owner (James) should be consulted on approach before significant work begins.
+
+### How decisions work
+- **High-level design**: Always discuss before implementing. If a task involves a new artefact, a meaningful structural change, or more than a few lines of non-trivial code, propose the approach and wait for agreement before writing it.
+- **Low-level coding decisions**: These can be made autonomously — naming, implementation detail, minor refactors within an agreed design don't need sign-off.
+- **When in doubt**: Err on the side of a brief "here's what I'm thinking, does that sound right?" rather than silently proceeding.
+
+### The testing loop
+1. Claude proposes and explains the approach.
+2. James agrees (or redirects).
+3. Claude writes the code.
+4. James deploys and tests it.
+5. James reports the result back to Claude.
+6. Claude helps interpret the result — whether it's a success, an unexpected behaviour, or a failure — and proposes next steps.
