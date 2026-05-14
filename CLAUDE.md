@@ -145,8 +145,8 @@ A `Debug` sheet tab holds a timestamped log of all significant events. It is aut
 | `payment.method` | Payment method string |
 | `status` | Order status string |
 
-### Known issue: `cost.shipping`
-`cost.shipping` (postage charged to buyer) is not returned by the BrickLink API in the current order sync. This is the primary investigation target for Phase 3.5. The field maps to the "Shipping Charged" column (col 6) in the Orders tab.
+### Note: `cost.shipping` requires the detail endpoint
+`GET /orders` returns order summaries only — `cost.shipping` is not included. `GET /orders/{order_id}` returns the full cost object. `syncOrders` therefore calls the detail endpoint for each new order to populate the "Shipping Charged" column (col 6).
 
 ### Common endpoints
 ```
@@ -189,7 +189,7 @@ GET  /notifications             # Unread push notifications
 
 1. **Split `Code.js` into modules** — ✓ Complete. Six files created: `Auth.js`, `Config.js`, `Debug.js`, `Orders.js`, `UI.js`, `Utils.js`.
 2. **Add Debug tab** — ✓ Complete. Timestamped log, `debugLog()` helper, `flushApiCallLog()` writes to tab, "Clear Debug Log" menu item.
-3. **Investigate `cost.shipping`** — why it isn't returned by the API; consider fetching individual order detail (`GET /orders/{order_id}`) which may include shipping breakdown.
+3. **Investigate `cost.shipping`** — ✓ Complete. `GET /orders` is summary-only by design; `syncOrders` now calls `GET /orders/{order_id}` per new order to get the full cost object.
 4. **Done when:** Debug tab works in practice, postage issue resolved or diagnosed, all existing functionality intact.
 
 ---

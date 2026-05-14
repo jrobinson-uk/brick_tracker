@@ -75,21 +75,30 @@ function syncOrders() {
 
     newOrders.sort((a, b) => new Date(b.date_ordered) - new Date(a.date_ordered));
 
-    const rows = newOrders.map(o => [
-      o.order_id,
-      o.date_ordered ? new Date(o.date_ordered).toLocaleDateString('en-GB') : '',
-      o.buyer_name   || '',
-      o.total_count  || 0,
-      o.unique_count || 0,
-      o.cost && o.cost.shipping    != null ? parseFloat(o.cost.shipping)    : '',
-      '',  // Shipping Actual — manual entry
-      o.cost && o.cost.grand_total != null ? parseFloat(o.cost.grand_total) : '',
-      o.cost  ? o.cost.currency_code : '',
-      o.payment ? o.payment.method   : '',
-      o.status  || '',
-      '',  // Refund — manual entry
-      ''   // Notes — manual entry
-    ]);
+    // Fetch full detail for each new order — the list endpoint returns summaries only
+    // and does not include cost.shipping; GET /orders/{id} returns the full cost object.
+    const rows = newOrders.map(o => {
+      const detail     = bricklinkRequest(`orders/${o.order_id}`, 'GET');
+      const d          = (detail.meta && detail.meta.code === 200) ? detail.data : o;
+      const shipping   = d.cost && d.cost.shipping != null ? parseFloat(d.cost.shipping) : '';
+      debugLog('syncOrders', `Order ${o.order_id}: cost.shipping=${shipping !== '' ? shipping : 'not returned'}`);
+
+      return [
+        d.order_id,
+        d.date_ordered ? new Date(d.date_ordered).toLocaleDateString('en-GB') : '',
+        d.buyer_name   || '',
+        d.total_count  || 0,
+        d.unique_count || 0,
+        shipping,
+        '',  // Shipping Actual — manual entry
+        d.cost && d.cost.grand_total != null ? parseFloat(d.cost.grand_total) : '',
+        d.cost    ? d.cost.currency_code : '',
+        d.payment ? d.payment.method     : '',
+        d.status  || '',
+        '',  // Refund — manual entry
+        ''   // Notes — manual entry
+      ];
+    });
 
     const insertRow = Math.max(sheet.getLastRow(), 1) + 1;
     sheet.getRange(insertRow, 1, rows.length, ORDERS_HEADERS.length).setValues(rows);
@@ -105,6 +114,7 @@ function syncOrders() {
     logStatus(`Orders synced: ${new Date().toLocaleString()} — ${newOrders.length} new`);
 
   } catch (e) {
+    debugLog('syncOrders', `Error: ${e.message}`);
     ui.alert(`❌ Sync failed:\n\n${e.message}`);
     logStatus(`Order sync failed: ${new Date().toLocaleString()}`);
   }
