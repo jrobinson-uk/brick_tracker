@@ -3,7 +3,7 @@
 // ============================================================
 
 const DEBUG_TAB     = 'Debug';
-const DEBUG_HEADERS = ['Timestamp', 'Function', 'Message'];
+const DEBUG_HEADERS = ['Timestamp', 'Function', 'Message', 'API Calls'];
 
 let apiCallLog_ = {};
 
@@ -25,7 +25,8 @@ function setupDebugTab() {
   sheet.setFrozenRows(1);
   sheet.setColumnWidth(1, 160); // Timestamp
   sheet.setColumnWidth(2, 140); // Function
-  sheet.setColumnWidth(3, 600); // Message
+  sheet.setColumnWidth(3, 500); // Message
+  sheet.setColumnWidth(4,  80); // API Calls
 
   return sheet;
 }
@@ -47,12 +48,12 @@ function clearDebugLog() {
 // Core log writer — auto-creates tab on first use
 // -------------------------------------------------------
 
-function debugLog(functionName, message) {
+function debugLog(functionName, message, apiCalls) {
   const ss  = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(DEBUG_TAB);
   if (!sheet) sheet = setupDebugTab();
 
-  sheet.appendRow([new Date().toLocaleString('en-GB'), functionName, message]);
+  sheet.appendRow([new Date().toLocaleString('en-GB'), functionName, message, apiCalls !== undefined ? apiCalls : '']);
 }
 
 // -------------------------------------------------------
@@ -69,22 +70,21 @@ function trackApiCall_(endpoint) {
 }
 
 function flushApiCallLog(functionName) {
-  const total   = Object.values(apiCallLog_).reduce((a, b) => a + b, 0);
-  const detail  = Object.entries(apiCallLog_).map(([k, v]) => `${k}: ${v}`).join(', ');
-  const message = `${total} API call(s) — ${detail}`;
+  const total  = Object.values(apiCallLog_).reduce((a, b) => a + b, 0);
+  const detail = Object.entries(apiCallLog_).map(([k, v]) => `${k}: ${v}`).join(', ');
 
   // Keep summary in Settings tab
   const ss       = SpreadsheetApp.getActiveSpreadsheet();
   const sheet    = ss.getSheetByName(SETTINGS_TAB);
   const existing = sheet.getRange(13, 2).getValue();
-  const updated  = `${new Date().toLocaleString()} — [${functionName}] ${message}` +
+  const updated  = `${new Date().toLocaleString()} — [${functionName}] ${total} call(s) — ${detail}` +
                    (existing ? `\n${existing}` : '');
   sheet.getRange(13, 1).setValue('API Log:');
   sheet.getRange(13, 2).setValue(updated.split('\n').slice(0, 10).join('\n'));
 
-  // Full entry in Debug tab
-  debugLog(functionName, message);
+  // Full entry in Debug tab — count as number in its own column
+  debugLog(functionName, detail, total);
 
-  Logger.log(`[${functionName}] ${message}`);
+  Logger.log(`[${functionName}] ${total} API call(s) — ${detail}`);
   apiCallLog_ = {};
 }
