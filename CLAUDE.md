@@ -107,8 +107,8 @@ A `Debug` sheet tab holds a timestamped log of all significant events. It is aut
 |--------|---------|
 | Timestamp | `en-GB` locale string |
 | Function | Name of the calling function |
-| Message | Free-text detail (endpoint breakdown for API log entries) |
-| API Calls | Numeric count — only populated by `flushApiCallLog`; blank for general log entries |
+| Endpoint | Normalised endpoint string, e.g. `GET /orders` or `GET /orders/{id}` — one row per endpoint per flush |
+| API Calls | Numeric count for that endpoint — summable with `=SUM(D2:D)` |
 
 - `debugLog(functionName, message)` — appends a row; any function can call this.
 - `clearDebugLog()` — wipes all rows below the header; also available from the menu.

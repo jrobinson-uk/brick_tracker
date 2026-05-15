@@ -78,10 +78,9 @@ function syncOrders() {
     // Fetch full detail for each new order — the list endpoint returns summaries only
     // and does not include cost.shipping; GET /orders/{id} returns the full cost object.
     const rows = newOrders.map(o => {
-      const detail     = bricklinkRequest(`orders/${o.order_id}`, 'GET');
-      const d          = (detail.meta && detail.meta.code === 200) ? detail.data : o;
-      const shipping   = d.cost && d.cost.shipping != null ? parseFloat(d.cost.shipping) : '';
-      debugLog('syncOrders', `Order ${o.order_id}: cost.shipping=${shipping !== '' ? shipping : 'not returned'}`);
+      const detail   = bricklinkRequest(`orders/${o.order_id}`, 'GET');
+      const d        = (detail.meta && detail.meta.code === 200) ? detail.data : o;
+      const shipping = d.cost && d.cost.shipping != null ? parseFloat(d.cost.shipping) : '';
 
       return [
         d.order_id,

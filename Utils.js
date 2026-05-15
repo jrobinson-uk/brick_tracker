@@ -66,7 +66,7 @@ function bricklinkRequest(endpoint, method, queryParams, bodyParams) {
     requestUrl = baseUrl + '?' + queryString;
   }
 
-  trackApiCall_(endpoint);
+  trackApiCall_(endpoint, method);
   const response = UrlFetchApp.fetch(requestUrl, options);
 
   Logger.log('Request URL: ' + requestUrl);
